@@ -21,10 +21,17 @@ bun install
 Add the plugin to Claude Code:
 
 ```bash
-claude plugins add /path/to/telegram-sessions
+# Add the local marketplace
+/plugin marketplace add /path/to/telegram-sessions
+
+# Install the plugin
+/plugin install telegram-sessions@telegram-sessions-marketplace
+
+# Reload to activate
+/reload-plugins
 ```
 
-Restart Claude Code. The plugin registers its MCP server and skills automatically.
+The plugin registers its MCP server and skills automatically.
 
 ## Setup
 

@@ -472,7 +472,7 @@ async function handleNewCommand(ctx: Context, label?: string): Promise<void> {
     const claudeTelegramBin = findClaudeTelegram()
     const claudeCmd = claudeTelegramBin
       ? `${claudeTelegramBin} --name ${name} --skip-permissions`
-      : `__dirname=${pluginRoot} TELEGRAM_SESSION_NAME=${name} claude --dangerously-load-development-channels server:telegram-sessions --dangerously-skip-permissions`
+      : `TELEGRAM_SESSION_NAME=${name} claude --dangerously-load-development-channels server:telegram-sessions --dangerously-skip-permissions`
 
     // Create tmux session with the claude command (wrap in shell so env vars are interpreted)
     const child = spawn('tmux', ['new-session', '-d', '-s', tmuxSession, '-c', cwd, 'sh', '-c', claudeCmd], {
