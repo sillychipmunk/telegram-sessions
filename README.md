@@ -1,5 +1,7 @@
 # telegram-sessions
 
+> **WARNING:** Sessions spawned from Telegram run with `--dangerously-skip-permissions`, which means Claude can execute any command without confirmation. Use at your own risk. Only allow access to trusted users and always lock down access policy to `allowlist` after setup.
+
 Telegram channel for Claude Code. Run multiple Claude sessions, manage them from Telegram with `/new`, `/switch`, `/kill`, `/sessions`.
 
 ## Prerequisites
