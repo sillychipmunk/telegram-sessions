@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "telegram-sessions": {
+      "command": "bun",
+      "args": ["run", "${__dirname}/src/server.ts"]
+    }
+  }
+}

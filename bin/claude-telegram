@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# claude-telegram — launch Claude with telegram-sessions channel
+#
+# Usage:
+#   claude-telegram [--name NAME] [--skip-permissions] [-- ...claude args]
+#
+# Options:
+#   --name NAME           Session name (default: claude-<random>)
+#   --skip-permissions    Pass --dangerously-skip-permissions to Claude
+#   --help, -h            Show this help
+#
+# Examples:
+#   claude-telegram --name todeep
+#   claude-telegram --name todeep --skip-permissions
+#   claude-telegram -- --verbose
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SESSION_NAME=""
+SKIP_PERMISSIONS=false
+CLAUDE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name)
+      SESSION_NAME="$2"
+      shift 2
+      ;;
+    --skip-permissions)
+      SKIP_PERMISSIONS=true
+      shift
+      ;;
+    --help|-h)
+      sed -n '2,/^$/{ s/^# //; s/^#//; p }' "$0"
+      exit 0
+      ;;
+    --)
+      shift
+      CLAUDE_ARGS+=("$@")
+      break
+      ;;
+    *)
+      CLAUDE_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$SESSION_NAME" ]]; then
+  SESSION_NAME="claude-$(openssl rand -hex 4)"
+fi
+
+export __dirname="$SCRIPT_DIR"
+export TELEGRAM_SESSION_NAME="$SESSION_NAME"
+
+EXTRA_ARGS=()
+if [[ "$SKIP_PERMISSIONS" == true ]]; then
+  EXTRA_ARGS+=(--dangerously-skip-permissions)
+fi
+
+exec claude \
+  --dangerously-load-development-channels server:telegram-sessions \
+  "${EXTRA_ARGS[@]}" \
+  "${CLAUDE_ARGS[@]}"
