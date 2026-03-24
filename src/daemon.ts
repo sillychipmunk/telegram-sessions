@@ -533,25 +533,6 @@ async function handleNewCommand(ctx: Context, label?: string, opts?: { skipPermi
   await ctx.reply(`Session started: ${name}\nWaiting for Claude to connect...`)
 }
 
-async function handleSwitchCommand(ctx: Context): Promise<void> {
-  if (sessions.size === 0) {
-    await ctx.reply('No active sessions. Use /new to start one.')
-    return
-  }
-
-  const chatId = String(ctx.chat!.id)
-  const currentSid = activeSession.get(chatId)
-
-  const buttons = [...sessions.entries()].map(([sid, s]) => {
-    const mark = sid === currentSid ? ' \u2713' : ''
-    return [{ text: `${s.name}${mark}`, callback_data: `switch:${sid}` }]
-  })
-
-  await ctx.reply('Choose a session:', {
-    reply_markup: { inline_keyboard: buttons },
-  })
-}
-
 async function handleKillCommand(ctx: Context, nameOrId?: string): Promise<void> {
   if (!nameOrId) {
     await ctx.reply('Usage: /kill <session-name-or-id>')
@@ -594,13 +575,33 @@ async function handleSessionsCommand(ctx: Context): Promise<void> {
   const chatId = String(ctx.chat!.id)
   const currentSid = activeSession.get(chatId)
 
-  const lines = [...sessions.entries()].map(([sid, s]) => {
-    const mark = sid === currentSid ? ' (active)' : ''
-    const cwd = s.cwd ? ` [${s.cwd}]` : ''
-    return `- ${s.name}${mark}${cwd}`
+  const buttons = [...sessions.entries()].map(([sid, s]) => {
+    const mark = sid === currentSid ? ' ✓' : ''
+    return [{ text: `${s.name}${mark}`, callback_data: `switch:${sid}` }]
   })
 
-  await ctx.reply(`Sessions:\n${lines.join('\n')}`)
+  await ctx.reply('Sessions (tap to switch):', {
+    reply_markup: { inline_keyboard: buttons },
+  })
+}
+
+async function handleSessionCommand(ctx: Context): Promise<void> {
+  const chatId = String(ctx.chat!.id)
+  const currentSid = activeSession.get(chatId)
+
+  if (!currentSid) {
+    await ctx.reply('No active session. Use /new to start one.')
+    return
+  }
+
+  const session = sessions.get(currentSid)
+  if (!session) {
+    await ctx.reply('Active session no longer available.')
+    return
+  }
+
+  const cwd = session.cwd ? `\nDirectory: ${session.cwd}` : ''
+  await ctx.reply(`Session: ${session.name}\nID: ${currentSid}${cwd}`)
 }
 
 // ============================================================================
@@ -608,7 +609,7 @@ async function handleSessionsCommand(ctx: Context): Promise<void> {
 // ============================================================================
 
 function isCommand(text: string): boolean {
-  return /^\/(new|switch|kill|sessions|last|projects|start|help|status)/.test(text)
+  return /^\/(new|kill|sessions?|last|projects|start|help|status|restart)/.test(text)
 }
 
 async function handleProjectsCommand(ctx: Context, args: string): Promise<void> {
@@ -698,11 +699,12 @@ async function handleHelpCommand(ctx: Context): Promise<void> {
     `Messages you send here route to a paired Claude Code session. ` +
     `Text, photos, documents and voice messages are forwarded.\n\n` +
     `/new [name] — start a new Claude session\n` +
-    `/switch — switch between sessions\n` +
-    `/sessions — list active sessions\n` +
+    `/sessions — list & switch between sessions\n` +
+    `/session — info about current session\n` +
     `/last — show last reply from current session\n` +
     `/projects — manage saved projects\n` +
     `/kill <name> — kill a session\n` +
+    `/restart — restart the daemon\n` +
     `/status — check your pairing state`
   )
 }
@@ -833,14 +835,14 @@ async function handleInbound(
         await handleNewCommand(ctx, name, { skipPermissions, continue: cont })
         return
       }
-      case 'switch':
-        await handleSwitchCommand(ctx)
-        return
       case 'kill':
         await handleKillCommand(ctx, args || undefined)
         return
       case 'sessions':
         await handleSessionsCommand(ctx)
+        return
+      case 'session':
+        await handleSessionCommand(ctx)
         return
       case 'last':
         await handleLastCommand(ctx)
@@ -1369,15 +1371,16 @@ void bot.start({
     botUsername = info.username
     process.stderr.write(`telegram-sessions daemon: polling as @${info.username}\n`)
     await bot.api.setMyCommands([
-      { command: 'start', description: 'Pairing instructions' },
-      { command: 'help', description: 'Available commands' },
-      { command: 'status', description: 'Check your pairing state' },
       { command: 'new', description: 'Start a session (/new [--skip-permissions] [--continue] name)' },
-      { command: 'switch', description: 'Switch between active sessions' },
-      { command: 'sessions', description: 'List all active sessions' },
+      { command: 'sessions', description: 'List & switch between sessions' },
+      { command: 'session', description: 'Info about current session' },
       { command: 'last', description: 'Show last message from current session' },
-      { command: 'projects', description: 'Manage saved projects (/projects add name path)' },
       { command: 'kill', description: 'Kill a session (/kill name-or-id)' },
+      { command: 'projects', description: 'Manage saved projects (/projects add name path)' },
+      { command: 'status', description: 'Check your pairing state' },
+      { command: 'restart', description: 'Restart the daemon' },
+      { command: 'help', description: 'Available commands' },
+      { command: 'start', description: 'Pairing instructions' },
     ])
   },
 })

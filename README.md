@@ -2,7 +2,7 @@
 
 > **WARNING:** Sessions spawned from Telegram run with `--dangerously-skip-permissions`, which means Claude can execute any command without confirmation. Use at your own risk. Only allow access to trusted users and always lock down access policy to `allowlist` after setup.
 
-Telegram channel for Claude Code. Run multiple Claude sessions, manage them from Telegram with `/new`, `/switch`, `/kill`, `/sessions`.
+Telegram channel for Claude Code. Run multiple Claude sessions, manage them from Telegram with `/new`, `/sessions`, `/kill`.
 
 ## Prerequisites
 
@@ -75,18 +75,18 @@ Now only approved users can reach Claude through the bot.
 
 | Command | Description |
 |---------|-------------|
-| `/start` | Pairing instructions |
-| `/help` | List available commands |
-| `/status` | Check your pairing state |
 | `/new [name] [--skip-permissions] [--continue]` | Start a new Claude session (runs in tmux) |
-| `/switch` | Switch between active sessions |
-| `/sessions` | List all active sessions |
+| `/sessions` | List active sessions with inline buttons to switch |
+| `/session` | Info about current session |
 | `/last` | Show the last reply from the current session |
+| `/kill <name>` | Kill a session |
 | `/projects` | List saved projects |
 | `/projects add <name> <path>` | Save a project (used as cwd for `/new <name>`) |
 | `/projects remove <name>` | Remove a saved project |
-| `/kill <name>` | Kill a session |
 | `/restart` | Restart the daemon |
+| `/status` | Check your pairing state |
+| `/help` | List available commands |
+| `/start` | Pairing instructions |
 
 Regular messages are routed to the active session. Text, photos, documents, voice messages, and audio files are forwarded. Claude replies directly in the chat with markdown formatting.
 
