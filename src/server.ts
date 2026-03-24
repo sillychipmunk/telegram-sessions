@@ -8,7 +8,7 @@ import {
 import { connect, type Socket } from 'net'
 import { spawn, execSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
-import { randomBytes, createHash } from 'crypto'
+import { randomBytes } from 'crypto'
 import {
   DAEMON_SOCK, DAEMON_PID,
   encode, parseMessages, loadEnv,
@@ -17,13 +17,12 @@ import {
 
 loadEnv()
 
+const SESSION_ID = randomBytes(4).toString('hex')
 const SESSION_NAME = process.env.TELEGRAM_SESSION_NAME
   ?? process.env.CLAUDE_SESSION_NAME
   ?? (process.env.CLAUDE_PROJECT_DIR
     ? process.env.CLAUDE_PROJECT_DIR.split('/').pop()!
-    : process.cwd().split('/').pop() ?? `session-${randomBytes(4).toString('hex')}`)
-// Deterministic so installed plugin + dev channel register as same session
-const SESSION_ID = createHash('md5').update(SESSION_NAME).digest('hex').slice(0, 8)
+    : process.cwd().split('/').pop() ?? `session-${SESSION_ID}`)
 
 // ============================================================================
 // Ensure Daemon is Running
@@ -55,7 +54,6 @@ function startDaemon(): void {
 }
 
 const IS_TELEGRAM_SESSION = !!process.env.TELEGRAM_SESSION_NAME
-const DAEMON_AVAILABLE = existsSync(DAEMON_SOCK) || isDaemonRunning()
 
 if (IS_TELEGRAM_SESSION && !isDaemonRunning()) {
   startDaemon()
@@ -372,7 +370,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
 // Start
 // ============================================================================
 
-if (IS_TELEGRAM_SESSION || DAEMON_AVAILABLE) {
+if (IS_TELEGRAM_SESSION) {
   await connectToDaemon()
 }
 await mcp.connect(new StdioServerTransport())
