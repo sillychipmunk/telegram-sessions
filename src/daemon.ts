@@ -101,6 +101,7 @@ type Access = {
   chunkMode?: 'length' | 'newline'
   workspace?: string
   projects?: Record<string, string>
+  transcribe?: string
 }
 
 function defaultAccess(): Access {
@@ -150,6 +151,7 @@ function readAccessFile(): Access {
       chunkMode: parsed.chunkMode,
       workspace: parsed.workspace,
       projects: parsed.projects,
+      transcribe: parsed.transcribe,
     }
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return defaultAccess()
@@ -718,7 +720,23 @@ async function handleStatusCommand(ctx: Context): Promise<void> {
   await ctx.reply(`Not paired. Send me a message to get a pairing code.`)
 }
 
-async function routeToSession(ctx: Context, text: string, imagePath?: string, attachment?: { file_id: string; name?: string; mime?: string; size?: number }): Promise<void> {
+async function downloadTelegramFile(fileId: string): Promise<string> {
+  const file = await bot.api.getFile(fileId)
+  if (!file.file_path) throw new Error('Telegram returned no file_path')
+  const url = `https://api.telegram.org/file/bot${TOKEN}/${file.file_path}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  const rawExt = file.file_path.includes('.') ? file.file_path.split('.').pop()! : 'bin'
+  const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin'
+  const uniqueId = (file.file_unique_id ?? '').replace(/[^a-zA-Z0-9_-]/g, '') || 'dl'
+  const path = join(INBOX_DIR, `${Date.now()}-${uniqueId}.${ext}`)
+  mkdirSync(INBOX_DIR, { recursive: true })
+  writeFileSync(path, buf)
+  return path
+}
+
+async function routeToSession(ctx: Context, text: string, imagePath?: string, attachment?: { kind: string; file_id: string; name?: string; mime?: string; size?: number }, transcribeTool?: string): Promise<void> {
   const chatId = String(ctx.chat!.id)
   const from = ctx.from!
   const msgId = ctx.message?.message_id
@@ -748,11 +766,13 @@ async function routeToSession(ctx: Context, text: string, imagePath?: string, at
     ts: new Date((ctx.message?.date ?? 0) * 1000).toISOString(),
     ...(imagePath ? { image_path: imagePath } : {}),
     ...(attachment ? {
+      attachment_kind: attachment.kind,
       attachment_file_id: attachment.file_id,
-      attachment_name: attachment.name,
-      attachment_mime: attachment.mime,
-      attachment_size: attachment.size,
+      ...(attachment.name ? { attachment_name: attachment.name } : {}),
+      ...(attachment.mime ? { attachment_mime: attachment.mime } : {}),
+      ...(attachment.size != null ? { attachment_size: String(attachment.size) } : {}),
     } : {}),
+    ...(transcribeTool ? { transcribe_tool: transcribeTool } : {}),
   }
 
   session.socket.write(encode(msg))
@@ -829,12 +849,19 @@ async function handleInbound(
   }
 
   const imagePath = downloadImage ? await downloadImage() : undefined
+
+  // Pass transcribe tool name for voice/audio if configured
+  const transcribeTool = attachment && (attachment.kind === 'voice' || attachment.kind === 'audio')
+    ? access.transcribe
+    : undefined
+
   await routeToSession(ctx, text, imagePath, attachment ? {
+    kind: attachment.kind,
     file_id: attachment.file_id,
     name: attachment.name,
     mime: attachment.mime,
     size: attachment.size,
-  } : undefined)
+  } : undefined, transcribeTool)
 }
 
 // ============================================================================
@@ -1017,18 +1044,7 @@ async function handleOutbound(msg: ServerToDaemon, session: ConnectedSession): P
   switch (msg.type) {
     case 'download_attachment': {
       try {
-        const file = await bot.api.getFile(msg.file_id)
-        if (!file.file_path) throw new Error('Telegram returned no file_path — file may have expired')
-        const url = `https://api.telegram.org/file/bot${TOKEN}/${file.file_path}`
-        const res = await fetch(url)
-        if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`)
-        const buf = Buffer.from(await res.arrayBuffer())
-        const rawExt = file.file_path.includes('.') ? file.file_path.split('.').pop()! : 'bin'
-        const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin'
-        const uniqueId = (file.file_unique_id ?? '').replace(/[^a-zA-Z0-9_-]/g, '') || 'dl'
-        const path = join(INBOX_DIR, `${Date.now()}-${uniqueId}.${ext}`)
-        mkdirSync(INBOX_DIR, { recursive: true })
-        writeFileSync(path, buf)
+        const path = await downloadTelegramFile(msg.file_id)
         session.socket.write(
           encode({ type: 'result', ok: true, data: path } as DaemonToServer),
         )

@@ -1,7 +1,7 @@
 {
   "name": "telegram-sessions",
   "description": "Multi-session Telegram channel for Claude Code — daemon-based architecture with session routing, /new, /switch, /kill commands from Telegram.",
-  "version": "0.1.0",
+  "version": "0.3.1",
   "keywords": [
     "telegram",
     "messaging",

@@ -43,10 +43,12 @@ export type DaemonToServer =
       text: string
       ts: string
       image_path?: string
+      attachment_kind?: string
       attachment_file_id?: string
       attachment_name?: string
       attachment_mime?: string
-      attachment_size?: number
+      attachment_size?: string
+      transcribe_tool?: string
     }
   | { type: 'session_activated' }
   | { type: 'session_deactivated' }
