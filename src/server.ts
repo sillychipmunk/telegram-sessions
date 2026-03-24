@@ -177,7 +177,7 @@ function sendAndWait(msg: ServerToDaemon): Promise<Extract<DaemonToServer, { typ
 // ============================================================================
 
 const mcp = new Server(
-  { name: 'telegram-sessions', version: '0.1.0' },
+  { name: 'telegram-sessions', version: '0.2.0' },
   {
     capabilities: { tools: {}, experimental: { 'claude/channel': {}, 'claude/channel/permission': {} } },
     instructions: [
