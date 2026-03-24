@@ -58,5 +58,6 @@ if [[ "$SKIP_PERMISSIONS" == true ]]; then
 fi
 
 exec claude \
+  --dangerously-load-development-channels server:telegram-sessions \
   ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
   ${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}
