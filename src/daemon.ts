@@ -518,12 +518,18 @@ async function handleNewCommand(ctx: Context, label?: string, opts?: { skipPermi
       child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`tmux exited ${code}`))))
       child.on('error', reject)
     })
-    // Auto-confirm the dev channels warning (option 1 is pre-selected, just press Enter)
-    await new Promise(resolve => setTimeout(resolve, 5000))
-    const confirm = spawn('tmux', ['send-keys', '-t', tmuxSession, 'Enter'], {
-      stdio: 'ignore',
-    })
-    await new Promise<void>(resolve => confirm.on('close', () => resolve()))
+    // Auto-confirm the dev channels warning — poll until the prompt appears
+    for (let i = 0; i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      try {
+        const { stdout } = Bun.spawnSync(['tmux', 'capture-pane', '-t', tmuxSession, '-p'])
+        if (stdout.toString().includes('Enter to confirm')) {
+          const confirm = spawn('tmux', ['send-keys', '-t', tmuxSession, 'Enter'], { stdio: 'ignore' })
+          await new Promise<void>(resolve => confirm.on('close', () => resolve()))
+          break
+        }
+      } catch {}
+    }
   } catch (err) {
     await ctx.reply(`Failed to start session: ${err instanceof Error ? err.message : String(err)}`)
     return
