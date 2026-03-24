@@ -48,7 +48,7 @@ export type DaemonToServer =
       attachment_name?: string
       attachment_mime?: string
       attachment_size?: string
-      transcribe_tool?: string
+      transcribe?: string
     }
   | { type: 'session_activated' }
   | { type: 'session_deactivated' }

@@ -95,7 +95,7 @@ function setupSocket(socket: Socket): void {
               ...(msg.attachment_name ? { attachment_name: msg.attachment_name } : {}),
               ...(msg.attachment_mime ? { attachment_mime: msg.attachment_mime } : {}),
               ...(msg.attachment_size ? { attachment_size: msg.attachment_size } : {}),
-              ...(msg.transcribe_tool ? { transcribe_tool: msg.transcribe_tool } : {}),
+              ...(msg.transcribe ? { transcribe: msg.transcribe } : {}),
             },
           },
         })
@@ -192,7 +192,7 @@ const mcp = new Server(
       'Messages from Telegram arrive as <channel source="telegram" chat_id="..." message_id="..." user="..." ts="...">.',
       'If the tag has an image_path attribute, Read that file — it is a photo the sender attached.',
       'If the tag has attachment_file_id, call download_attachment with that file_id to fetch the file, then Read the returned path.',
-      'If the tag has transcribe_tool, the user configured automatic transcription — call download_attachment first, then call the named tool with the downloaded file path to get the transcript.',
+      'If the tag has a transcribe attribute, it is a shell command for transcription — call download_attachment first, then run the command with the file path via Bash to get the transcript text.',
       'Reply with the reply tool — pass chat_id back. Use reply_to only when replying to an earlier message; omit for normal responses.',
       '',
       'reply accepts file paths (files: ["/abs/path.png"]) for attachments.',

@@ -736,7 +736,7 @@ async function downloadTelegramFile(fileId: string): Promise<string> {
   return path
 }
 
-async function routeToSession(ctx: Context, text: string, imagePath?: string, attachment?: { kind: string; file_id: string; name?: string; mime?: string; size?: number }, transcribeTool?: string): Promise<void> {
+async function routeToSession(ctx: Context, text: string, imagePath?: string, attachment?: { kind: string; file_id: string; name?: string; mime?: string; size?: number }, transcribe?: string): Promise<void> {
   const chatId = String(ctx.chat!.id)
   const from = ctx.from!
   const msgId = ctx.message?.message_id
@@ -772,7 +772,7 @@ async function routeToSession(ctx: Context, text: string, imagePath?: string, at
       ...(attachment.mime ? { attachment_mime: attachment.mime } : {}),
       ...(attachment.size != null ? { attachment_size: String(attachment.size) } : {}),
     } : {}),
-    ...(transcribeTool ? { transcribe_tool: transcribeTool } : {}),
+    ...(transcribe ? { transcribe } : {}),
   }
 
   session.socket.write(encode(msg))
@@ -850,8 +850,8 @@ async function handleInbound(
 
   const imagePath = downloadImage ? await downloadImage() : undefined
 
-  // Pass transcribe tool name for voice/audio if configured
-  const transcribeTool = attachment && (attachment.kind === 'voice' || attachment.kind === 'audio')
+  // Pass transcribe command for voice/audio if configured
+  const transcribe = attachment && (attachment.kind === 'voice' || attachment.kind === 'audio')
     ? access.transcribe
     : undefined
 
@@ -861,7 +861,7 @@ async function handleInbound(
     name: attachment.name,
     mime: attachment.mime,
     size: attachment.size,
-  } : undefined, transcribeTool)
+  } : undefined, transcribe)
 }
 
 // ============================================================================
