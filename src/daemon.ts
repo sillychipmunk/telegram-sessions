@@ -519,7 +519,7 @@ async function handleNewCommand(ctx: Context, label?: string, opts?: { skipPermi
       child.on('error', reject)
     })
     // Auto-confirm the dev channels warning (option 1 is pre-selected, just press Enter)
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    await new Promise(resolve => setTimeout(resolve, 5000))
     const confirm = spawn('tmux', ['send-keys', '-t', tmuxSession, 'Enter'], {
       stdio: 'ignore',
     })
