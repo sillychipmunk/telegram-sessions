@@ -892,6 +892,19 @@ bot.on('message:voice', async (ctx) => {
   })
 })
 
+bot.on('message:audio', async (ctx) => {
+  const audio = ctx.message.audio
+  const name = safeName(audio.file_name)
+  const text = ctx.message.caption ?? `(audio: ${name ?? audio.title ?? 'file'})`
+  await handleInbound(ctx, text, undefined, {
+    kind: 'audio',
+    file_id: audio.file_id,
+    size: audio.file_size,
+    mime: audio.mime_type,
+    name,
+  })
+})
+
 bot.on('callback_query:data', async (ctx) => {
   const data = ctx.callbackQuery.data
 
