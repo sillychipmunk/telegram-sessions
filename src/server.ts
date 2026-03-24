@@ -372,5 +372,13 @@ mcp.setRequestHandler(CallToolRequestSchema, async req => {
 
 if (IS_TELEGRAM_SESSION || (existsSync(DAEMON_SOCK) && isDaemonRunning())) {
   await connectToDaemon()
+} else {
+  // Installed plugin may start before daemon — poll for daemon availability
+  const pollForDaemon = setInterval(() => {
+    if (existsSync(DAEMON_SOCK) && isDaemonRunning() && !connected) {
+      clearInterval(pollForDaemon)
+      connectToDaemon().catch(() => {})
+    }
+  }, 2000)
 }
 await mcp.connect(new StdioServerTransport())
