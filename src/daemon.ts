@@ -496,7 +496,7 @@ async function handleNewCommand(ctx: Context, label?: string, opts?: { skipPermi
     if (opts?.continue) extraFlags.push('--continue')
     const claudeCmd = claudeTelegramBin
       ? `${claudeTelegramBin} --name ${name}${extraFlags.length ? ' ' + extraFlags.join(' ') : ''}`
-      : `TELEGRAM_SESSION_NAME=${name} claude --dangerously-load-development-channels server:telegram-sessions${opts?.skipPermissions ? ' --dangerously-skip-permissions' : ''}${opts?.continue ? ' --continue' : ''}`
+      : `TELEGRAM_SESSION_NAME=${name} claude${opts?.skipPermissions ? ' --dangerously-skip-permissions' : ''}${opts?.continue ? ' --continue' : ''}`
 
     // Create tmux session with the claude command (wrap in shell so env vars are interpreted)
     const child = spawn('tmux', ['new-session', '-d', '-s', tmuxSession, '-c', cwd, 'sh', '-c', claudeCmd], {
@@ -506,12 +506,6 @@ async function handleNewCommand(ctx: Context, label?: string, opts?: { skipPermi
       child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`tmux exited ${code}`))))
       child.on('error', reject)
     })
-    // Auto-confirm the dev channels warning (option 1 is pre-selected, just press Enter)
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    const confirm = spawn('tmux', ['send-keys', '-t', tmuxSession, 'Enter'], {
-      stdio: 'ignore',
-    })
-    await new Promise<void>(resolve => confirm.on('close', () => resolve()))
   } catch (err) {
     await ctx.reply(`Failed to start session: ${err instanceof Error ? err.message : String(err)}`)
     return
